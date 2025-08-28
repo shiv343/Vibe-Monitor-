@@ -1,0 +1,50 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  # Cross-platform Docker logs scraping
+  - job_name: docker-logs
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+        filters:
+          - name: label
+            values: ["logging=promtail"]
+    relabel_configs:
+      - source_labels: [__meta_docker_container_name]
+        target_label: container
+      - source_labels: [__meta_docker_container_label_com_docker_compose_service]
+        target_label: compose_service
+      - source_labels: [__meta_docker_container_label_service]
+        target_label: service
+    pipeline_stages:
+      - docker: {}
+      - labels:
+          container: container
+          compose_service: compose_service
+          service: service
+      - json:
+          expressions:
+            timestamp: timestamp
+            level: level
+            logger: logger
+            message: message
+            delay: delay
+            endpoint: endpoint
+            status: status
+      - labels:
+          level: level
+          logger: logger
+          endpoint: endpoint
+          status: status
+      - timestamp:
+          source: timestamp
+          format: "2006-01-02 15:04:05,000"
+          location: "UTC"
