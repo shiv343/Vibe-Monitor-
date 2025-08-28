@@ -1,60 +1,40 @@
-apiVersion: 1
+server:
+  http_listen_port: 3200
 
-deleteDatasources:
-  - name: Prometheus
-    orgId: 1
-  - name: Loki
-    orgId: 1
-  - name: Tempo
-    orgId: 1
+distributor:
+  receivers:
+    otlp:
+      protocols:
+        http:
+          endpoint: 0.0.0.0:4318
+        grpc:
+          endpoint: 0.0.0.0:4317
 
-datasources:
-  - name: Prometheus
-    type: prometheus
-    access: proxy
-    url: http://prometheus:9090
-    isDefault: true
-    editable: true
+ingester:
+  max_block_duration: 5m
 
-  - name: Loki
-    type: loki
-    access: proxy
-    url: http://loki:3100
-    editable: true
-    jsonData:
-      derivedFields:
-        - datasourceUid: tempo
-          matcherRegex: "trace_id=(\\w+)"
-          name: TraceID
-          url: "$${__value.raw}"
+compactor:
+  compaction:
+    block_retention: 1h
 
-  - name: Tempo
-    type: tempo
-    access: proxy
-    url: http://tempo:3200
-    editable: true
-    jsonData:
-      httpMethod: GET
-      serviceMap:
-        datasourceUid: prometheus
-      nodeGraph:
-        enabled: true
-      tracesToLogs:
-        datasourceUid: loki
-        filterByTraceID: true
-        filterBySpanID: false
-        tags: ['job', 'instance', 'pod', 'namespace']
-        mappedTags: [{ key: 'service.name', value: 'service' }]
-        mapTagNamesEnabled: false
-        spanStartTimeShift: '1h'
-        spanEndTimeShift: '1h'
-      tracesToMetrics:
-        datasourceUid: prometheus
-        tags: [{ key: 'service.name', value: 'service' }, { key: 'job' }]
-        queries:
-          - name: 'Sample query'
-            query: 'sum(rate(tempo_spanmetrics_latency_bucket[5m]))'
-      search:
-        hide: false
-      lokiSearch:
-        datasourceUid: loki
+metrics_generator:
+  registry:
+    external_labels:
+      source: tempo
+      cluster: docker-compose
+  storage:
+    path: /tmp/tempo/generator/wal
+    remote_write:
+      - url: http://prometheus:9090/api/v1/write
+        send_exemplars: true
+
+storage:
+  trace:
+    backend: local
+    wal:
+      path: /tmp/tempo/wal
+    local:
+      path: /tmp/tempo/blocks
+    pool:
+      max_workers: 100
+      queue_depth: 10000
