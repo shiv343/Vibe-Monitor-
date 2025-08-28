@@ -31,7 +31,7 @@ def generate_traffic():
     
     try:
         with ThreadPoolExecutor(max_workers=3) as executor:
-            for i in range(200):  # Generate 200 requests
+            for i in range(200):  
                 # Randomly select endpoint with different weights
                 weights = [0.6, 0.1, 0.05, 0.25]  # hello, slow, error, root
                 endpoint = random.choices(ENDPOINTS, weights=weights)[0]
@@ -41,31 +41,31 @@ def generate_traffic():
                 future = executor.submit(make_request, url, i + 1)
                 request_count += 1
                 
-                # Variable delay between requests (0.05 to 0.5 seconds)
+               
                 delay = random.uniform(0.05, 0.5)
                 time.sleep(delay)
                 
                 # Every 50 requests, print status
                 if (i + 1) % 50 == 0:
-                    print(f"📈 Sent {i + 1} requests...")
+                    print(f" Sent {i + 1} requests...")
                     
     except KeyboardInterrupt:
-        print("\n⏹️  Traffic generation stopped by user")
+        print("\n  Traffic generation stopped by user")
     
-    print(f"\n✅ Traffic generation completed! Total requests: {request_count}")
-    print("🔍 Check Grafana at http://localhost:3000 for metrics, logs, and traces")
+    print(f"\n Traffic generation completed! Total requests: {request_count}")
+    print("Check Grafana at http://localhost:3000 for metrics, logs, and traces")
 
 if __name__ == "__main__":
     # Wait a bit for services to be ready
-    print("⏳ Waiting 5 seconds for services to start...")
+    print(" Waiting 5 seconds for services to start...")
     time.sleep(5)
     
     # Test connectivity first
     try:
         response = requests.get(f"{BASE_URL}/health", timeout=5)
-        print(f"✅ Service is ready! Health check: {response.status_code}")
+        print(f" Service is ready! Health check: {response.status_code}")
     except Exception as e:
-        print(f"❌ Service not ready: {e}")
+        print(f" Service not ready: {e}")
         print("Make sure to run 'docker-compose up' first")
         exit(1)
     

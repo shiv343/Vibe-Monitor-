@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from prometheus_fastapi_instrumentator import Instrumentator
 
-# --- OpenTelemetry (tracing) setup ---
+
 from opentelemetry import trace
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
@@ -16,14 +16,14 @@ from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExport
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.instrumentation.requests import RequestsInstrumentor
 
-# Configure logging (structured)
+
 logging.basicConfig(
     level=logging.INFO,
     format='{"timestamp": "%(asctime)s", "level": "%(levelname)s", "logger": "%(name)s", "message": "%(message)s"}'
 )
 logger = logging.getLogger("fastapi-demo")
 
-# Global tracer
+
 tracer = None
 
 @asynccontextmanager
@@ -31,10 +31,9 @@ async def lifespan(app: FastAPI):
     """Application lifespan events"""
     global tracer
     
-    # Startup
     logger.info("Starting FastAPI Observability Demo")
     
-    # Initialize OpenTelemetry with error handling
+    
     try:
         resource = Resource.create({
             "service.name": "fastapi-demo",
@@ -42,7 +41,7 @@ async def lifespan(app: FastAPI):
         })
         provider = TracerProvider(resource=resource)
         
-        # Try to connect to Tempo
+        
         tempo_endpoint = os.getenv("TEMPO_ENDPOINT", "http://tempo:4318/v1/traces")
         exporter = OTLPSpanExporter(endpoint=tempo_endpoint, insecure=True)
         processor = BatchSpanProcessor(exporter)
@@ -53,12 +52,12 @@ async def lifespan(app: FastAPI):
         logger.info(f"OpenTelemetry configured with endpoint: {tempo_endpoint}")
     except Exception as e:
         logger.error(f"Failed to initialize OpenTelemetry: {e}")
-        # Create a no-op tracer as fallback
+       
         tracer = trace.NoOpTracer()
     
     yield
     
-    # Shutdown
+   
     logger.info("Shutting down FastAPI Observability Demo")
 
 app = FastAPI(
@@ -81,7 +80,7 @@ instrumentator = Instrumentator(
 )
 instrumentator.instrument(app).expose(app)
 
-# Auto-instrument FastAPI & requests
+
 FastAPIInstrumentor.instrument_app(app)
 RequestsInstrumentor().instrument()
 
@@ -112,7 +111,7 @@ def hello():
             time.sleep(delay)
             
             # Random chance of "error" for demo purposes
-            if random.random() < 0.1:  # 10% chance
+            if random.random() < 0.1:  
                 logger.warning("Simulated warning condition", extra={
                     "delay": delay,
                     "endpoint": "/hello",
